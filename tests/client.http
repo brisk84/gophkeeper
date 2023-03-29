@@ -1,0 +1,24 @@
+@apil=http://localhost:8585
+
+###
+POST {{apil}}/health
+Content-Type: application/json
+
+
+###
+POST {{apil}}/user/register
+Content-Type: application/json
+
+{
+    "login": "user01",
+    "pass": "123"
+}
+
+###
+POST {{apil}}/user/login
+Content-Type: application/json
+
+{
+    "login": "user01",
+    "pass": "123"
+}

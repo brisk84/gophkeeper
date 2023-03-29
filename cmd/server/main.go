@@ -1,7 +1,42 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"log"
+	"os/signal"
+	"syscall"
+
+	"github.com/brisk84/gophkeeper/internal/app"
+	"github.com/brisk84/gophkeeper/internal/config"
+	"github.com/brisk84/gophkeeper/pkg/logger"
+	"golang.org/x/sync/errgroup"
+)
 
 func main() {
-	fmt.Println(1)
+	lg, err := logger.New(true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg, err := config.New()
+	if err != nil {
+		lg.Fatal(err)
+	}
+	a, err := app.New(lg, cfg)
+	if err != nil {
+		lg.Fatal(err)
+	}
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer cancel()
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return a.Run(ctx)
+	})
+	if err = eg.Wait(); err != nil {
+		lg.Fatal(err)
+	}
 }

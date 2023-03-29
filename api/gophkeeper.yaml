@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: GopherKeeperApi
+  description: GopherKeeperApi
+  version: 1.0.0
+
+servers:
+  - url: /
+
+paths:
+  /health:
+    post:
+      description: Check health
+      responses:
+        200:
+          description: OK
+
+  /user/register:
+    post:
+      description: User login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterReq"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResp"
+
+  /user/login:
+    post:
+      description: User login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginReq"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResp"
+
+components:
+  schemas:
+    RegisterReq:
+      required:
+        - login
+        - pass
+      properties:
+        login:
+          type: string
+        pass:
+          type: string
+
+    RegisterResp:
+      required:
+        - id
+      properties:
+        id:
+          type: string
+
+    LoginReq:
+      required:
+        - login
+        - pass
+      properties:
+        login:
+          type: string
+        pass:
+          type: string
+
+    LoginResp:
+      required:
+        - id
+      properties:
+        id:
+          type: string

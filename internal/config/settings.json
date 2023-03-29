@@ -1,0 +1,4 @@
+{
+    "server_address": ":80",
+    "main_dsn": "postgresql://localhost/gophkeeper?user=postgres&password=GofeMartPg&sslmode=disable"
+}
