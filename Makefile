@@ -9,6 +9,6 @@ cert:
 	cd cert; ./gen.sh; cd ..
 
 run:
-	go run ./cmd/server/main.go -a :8080
+	go run ./cmd/server/main.go -a :4343
 
 .PHONY: cert

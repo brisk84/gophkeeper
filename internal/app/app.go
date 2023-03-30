@@ -26,7 +26,10 @@ func New(lg logger.Logger, cfg config.Config) (*App, error) {
 		return nil, err
 	}
 	h := handler.New(lg, uc)
-	srv := server.New(lg, cfg, h)
+	srv, err := server.New(lg, cfg, h)
+	if err != nil {
+		return nil, err
+	}
 	return &App{
 		srv: srv,
 		lg:  lg,

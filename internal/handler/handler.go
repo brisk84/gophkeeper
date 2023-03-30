@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/brisk84/gophkeeper/api"
 	"github.com/brisk84/gophkeeper/domain"
 	"github.com/brisk84/gophkeeper/pkg/logger"
 )
 
 type Handler struct {
+	api.UnimplementedGophKeeperServer
 	lg      logger.Logger
 	useCase useCase
 }
