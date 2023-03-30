@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/brisk84/gophkeeper/api/gophserver"
+
 type User struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
@@ -10,6 +12,11 @@ type User struct {
 
 func (u *User) IsValid() bool {
 	return u.Login != "" && u.Password != ""
+}
+
+func (u *User) FromReq(req gophserver.RegisterLoginReq) {
+	u.Login = req.Login
+	u.Password = req.Password
 }
 
 type Bearer struct {

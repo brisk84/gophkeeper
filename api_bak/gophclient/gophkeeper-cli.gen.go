@@ -14,33 +14,22 @@ import (
 	"strings"
 )
 
-// LoginReq defines model for LoginReq.
-type LoginReq struct {
-	Login string `json:"login"`
-	Pass  string `json:"pass"`
+// RegisterLoginReq defines model for RegisterLoginReq.
+type RegisterLoginReq struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
-// LoginResp defines model for LoginResp.
-type LoginResp struct {
-	Id string `json:"id"`
-}
-
-// RegisterReq defines model for RegisterReq.
-type RegisterReq struct {
-	Login string `json:"login"`
-	Pass  string `json:"pass"`
-}
-
-// RegisterResp defines model for RegisterResp.
-type RegisterResp struct {
-	Id string `json:"id"`
+// RegisterLoginResp defines model for RegisterLoginResp.
+type RegisterLoginResp struct {
+	Token string `json:"token"`
 }
 
 // PostUserLoginJSONRequestBody defines body for PostUserLogin for application/json ContentType.
-type PostUserLoginJSONRequestBody = LoginReq
+type PostUserLoginJSONRequestBody = RegisterLoginReq
 
 // PostUserRegisterJSONRequestBody defines body for PostUserRegister for application/json ContentType.
-type PostUserRegisterJSONRequestBody = RegisterReq
+type PostUserRegisterJSONRequestBody = RegisterLoginReq
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -377,7 +366,7 @@ func (r PostHealthResponse) StatusCode() int {
 type PostUserLoginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *LoginResp
+	JSON200      *RegisterLoginResp
 }
 
 // Status returns HTTPResponse.Status
@@ -399,7 +388,7 @@ func (r PostUserLoginResponse) StatusCode() int {
 type PostUserRegisterResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *RegisterResp
+	JSON200      *RegisterLoginResp
 }
 
 // Status returns HTTPResponse.Status
@@ -492,7 +481,7 @@ func ParsePostUserLoginResponse(rsp *http.Response) (*PostUserLoginResponse, err
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest LoginResp
+		var dest RegisterLoginResp
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -518,7 +507,7 @@ func ParsePostUserRegisterResponse(rsp *http.Response) (*PostUserRegisterRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest RegisterResp
+		var dest RegisterLoginResp
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

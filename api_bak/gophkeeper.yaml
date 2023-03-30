@@ -22,14 +22,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RegisterReq"
+              $ref: "#/components/schemas/RegisterLoginReq"
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RegisterResp"
+                $ref: "#/components/schemas/RegisterLoginResp"
 
   /user/login:
     post:
@@ -38,47 +38,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginReq"
+              $ref: "#/components/schemas/RegisterLoginReq"
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LoginResp"
+                $ref: "#/components/schemas/RegisterLoginResp"
 
 components:
   schemas:
-    RegisterReq:
+    RegisterLoginReq:
       required:
         - login
-        - pass
+        - password
       properties:
         login:
           type: string
-        pass:
+        password:
           type: string
 
-    RegisterResp:
+    RegisterLoginResp:
       required:
-        - id
+        - token
       properties:
-        id:
-          type: string
-
-    LoginReq:
-      required:
-        - login
-        - pass
-      properties:
-        login:
-          type: string
-        pass:
-          type: string
-
-    LoginResp:
-      required:
-        - id
-      properties:
-        id:
+        token:
           type: string

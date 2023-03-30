@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 
-	"github.com/brisk84/gophkeeper/domain"
 	"github.com/brisk84/gophkeeper/internal/config"
 	"github.com/brisk84/gophkeeper/pkg/logger"
 	_ "github.com/lib/pq"
@@ -50,12 +49,4 @@ func (s *storage) Connect() error {
 // Close Закрывает соединение
 func (s *storage) Close() error {
 	return s.db.Close()
-}
-
-func (s *storage) UserRegister(user domain.User) (domain.Bearer, error) {
-	return domain.Bearer{Bearer: "123"}, nil
-}
-
-func (s *storage) UserLogin(user domain.User) (domain.Bearer, error) {
-	return domain.Bearer{Bearer: "123"}, nil
 }

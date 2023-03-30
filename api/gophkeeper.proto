@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package gophkeeper;
+option go_package = "github.com/brisk84/gophkeeper/api";
+
+// The GophKeeper service
+service GophKeeper {
+  rpc Register (RegisterLoginReq) returns (RegisterLoginResp) {}
+}
+
+// The request message for register and login
+message RegisterLoginReq {
+  string login = 1;
+  string password = 2;
+}
+
+// The response message containing the token
+message RegisterLoginResp {
+  string token = 1;
+}

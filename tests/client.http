@@ -1,4 +1,4 @@
-@apil=http://localhost:8585
+@apil=http://localhost:8080
 
 ###
 POST {{apil}}/health
@@ -11,7 +11,7 @@ Content-Type: application/json
 
 {
     "login": "user01",
-    "pass": "123"
+    "password": "123"
 }
 
 ###
@@ -20,5 +20,5 @@ Content-Type: application/json
 
 {
     "login": "user01",
-    "pass": "123"
+    "password": "123"
 }

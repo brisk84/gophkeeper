@@ -10,33 +10,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// LoginReq defines model for LoginReq.
-type LoginReq struct {
-	Login string `json:"login"`
-	Pass  string `json:"pass"`
+// RegisterLoginReq defines model for RegisterLoginReq.
+type RegisterLoginReq struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
-// LoginResp defines model for LoginResp.
-type LoginResp struct {
-	Id string `json:"id"`
-}
-
-// RegisterReq defines model for RegisterReq.
-type RegisterReq struct {
-	Login string `json:"login"`
-	Pass  string `json:"pass"`
-}
-
-// RegisterResp defines model for RegisterResp.
-type RegisterResp struct {
-	Id string `json:"id"`
+// RegisterLoginResp defines model for RegisterLoginResp.
+type RegisterLoginResp struct {
+	Token string `json:"token"`
 }
 
 // PostUserLoginJSONRequestBody defines body for PostUserLogin for application/json ContentType.
-type PostUserLoginJSONRequestBody = LoginReq
+type PostUserLoginJSONRequestBody = RegisterLoginReq
 
 // PostUserRegisterJSONRequestBody defines body for PostUserRegister for application/json ContentType.
-type PostUserRegisterJSONRequestBody = RegisterReq
+type PostUserRegisterJSONRequestBody = RegisterLoginReq
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
