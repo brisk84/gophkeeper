@@ -4,19 +4,19 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
+	"strconv"
 	"time"
 
 	"github.com/brisk84/gophkeeper/api"
+	"github.com/brisk84/gophkeeper/domain"
 	"github.com/brisk84/gophkeeper/internal/gophclient"
 	"github.com/manifoldco/promptui"
 	"github.com/nexidian/gocliselect"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -47,7 +47,9 @@ func intTests(ctx context.Context, c api.GophKeeperClient) int {
 	return 0
 }
 
-func menu(m map[string]func(gc gophclient.GophClient), gc gophclient.GophClient) {
+type callFunc = func(ctx context.Context, gc *gophclient.GophClient) error
+
+func menu(m map[string]callFunc, gc *gophclient.GophClient) {
 	menu := gocliselect.NewMenu("Welcome to GophKeeper! Choose a command")
 
 	menu.AddItem("Register", "register")
@@ -64,475 +66,255 @@ func menu(m map[string]func(gc gophclient.GophClient), gc gophclient.GophClient)
 
 	choice := menu.Display()
 	if f, ok := m[choice]; ok {
-		f(gc)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		err := f(ctx, gc)
+		if err != nil {
+			fmt.Println(err)
+		}
+		cancel()
 	}
 }
 
-func Register(gc api.GophKeeperClient) {
+func getInput(label string, minLen int, defVal string, mask rune) (string, error) {
 	validate := func(input string) error {
-		if len(input) < 3 {
-			return errors.New("username must have more than 3 characters")
+		if len(input) < minLen {
+			return fmt.Errorf("%s must have more than %d characters", label, minLen)
 		}
 		return nil
 	}
+	prompt := promptui.Prompt{
+		Label:   label,
+		Default: defVal,
+		Mask:    mask,
+	}
+	if minLen > 0 {
+		prompt.Validate = validate
+	}
+	title, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+	return title, nil
+}
 
+func Register(ctx context.Context, gc *gophclient.GophClient) error {
 	var username string
-	u, err := user.Current()
-	if err == nil {
+	if u, err := user.Current(); err == nil {
 		username = u.Username
 	}
-
-	prompt := promptui.Prompt{
-		Label:    "Username",
-		Validate: validate,
-		Default:  username,
-	}
-
-	login, err := prompt.Run()
-
+	login, err := getInput("Username", 3, username, 0)
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
+		return err
 	}
-
-	// fmt.Printf("Your username is %q\n", result)
-
-	validate = func(input string) error {
-		if len(input) < 6 {
-			return errors.New("password must have more than 6 characters")
-		}
-		return nil
-	}
-
-	prompt = promptui.Prompt{
-		Label:    "Password",
-		Validate: validate,
-		Mask:     '*',
-	}
-
-	password, err := prompt.Run()
-
+	password, err := getInput("Password", 6, "", '*')
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
+		return err
 	}
 
-	// fmt.Printf("Your password is %q\n", result)
-
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
-	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.Register(ctx, &api.RegisterLoginReq{
-		Login:    login,
-		Password: password,
-	})
+	token, success, err := gc.Register(ctx, domain.User{Login: login, Password: password})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(resp.Token)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+	fmt.Println(token, success)
+	return nil
 }
 
-func Login() {
-	validate := func(input string) error {
-		if len(input) < 3 {
-			return errors.New("Username must have more than 3 characters")
-		}
-		return nil
-	}
-
+func Login(ctx context.Context, gc *gophclient.GophClient) error {
 	var username string
-	u, err := user.Current()
-	if err == nil {
+	if u, err := user.Current(); err == nil {
 		username = u.Username
 	}
-
-	prompt := promptui.Prompt{
-		Label:    "Username",
-		Validate: validate,
-		Default:  username,
-	}
-
-	login, err := prompt.Run()
-
+	login, err := getInput("Username", 3, username, 0)
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
+		return err
 	}
-
-	// fmt.Printf("Your username is %q\n", result)
-
-	validate = func(input string) error {
-		if len(input) < 6 {
-			return errors.New("Password must have more than 6 characters")
-		}
-		return nil
-	}
-
-	prompt = promptui.Prompt{
-		Label:    "Password",
-		Validate: validate,
-		Mask:     '*',
-	}
-
-	password, err := prompt.Run()
-
+	password, err := getInput("Password", 6, "", '*')
 	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
+		return err
 	}
 
-	// fmt.Printf("Your password is %q\n", result)
-
-	tlsCredentials, err := loadTLSCredentials()
+	token, success, err := gc.Login(ctx, domain.User{Login: login, Password: password})
 	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+		return err
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.Login(ctx, &api.RegisterLoginReq{
-		Login:    login,
-		Password: password,
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Success, resp.Token)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+	fmt.Println(token, success)
+	return nil
 }
 
-func SaveData() {
-	// validate := func(input string) error {
-	// 	if len(input) < 3 {
-	// 		return errors.New("Username must have more than 3 characters")
-	// 	}
-	// 	return nil
-	// }
-
-	// var username string
-	// u, err := user.Current()
-	// if err == nil {
-	// 	username = u.Username
-	// }
-
-	// prompt := promptui.Prompt{
-	// 	Label:    "Username",
-	// 	Validate: validate,
-	// 	Default:  username,
-	// }
-
-	// login, err := prompt.Run()
-
-	// if err != nil {
-	// 	fmt.Printf("Prompt failed %v\n", err)
-	// 	return
-	// }
-
-	// // fmt.Printf("Your username is %q\n", result)
-
-	// validate = func(input string) error {
-	// 	if len(input) < 6 {
-	// 		return errors.New("Password must have more than 6 characters")
-	// 	}
-	// 	return nil
-	// }
-
-	// prompt = promptui.Prompt{
-	// 	Label:    "Password",
-	// 	Validate: validate,
-	// 	Mask:     '*',
-	// }
-
-	// password, err := prompt.Run()
-
-	// if err != nil {
-	// 	fmt.Printf("Prompt failed %v\n", err)
-	// 	return
-	// }
-
-	// fmt.Printf("Your password is %q\n", result)
-
-	tlsCredentials, err := loadTLSCredentials()
+func ListData(ctx context.Context, gc *gophclient.GophClient) error {
+	data, err := gc.ListData(ctx)
 	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+		return err
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.SaveData(ctx, &api.SaveDataReq{
-		Token: "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		Title: "Test binary data",
-		Data:  []byte("123"),
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Id)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
-}
-
-func SaveLogin() {
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
-	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.SaveLogin(ctx, &api.SaveLoginReq{
-		Token: "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		Title: "Test login/pass data",
-		Login: "Login12",
-		Pass:  "Pass32",
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Id)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
-}
-
-func SaveText() {
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
-	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.SaveText(ctx, &api.SaveTextReq{
-		Token: "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		Title: "Test text data",
-		Text:  "Test string of text",
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Id)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
-}
-
-func SaveCard() {
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
-	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.SaveBankCard(ctx, &api.SaveBankCardReq{
-		Token:  "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		Title:  "Test bank card data",
-		CardNo: "1234 5678 9012 3456",
-		Valid:  "06/25",
-		Cvv:    "123",
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Id)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
-}
-
-func ListData() {
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
-	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.ListData(ctx, &api.ListDataReq{
-		Token: "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-	})
-	if err != nil {
-		panic(err)
-	}
-	for _, item := range resp.Items {
+	for _, item := range data {
 		fmt.Println(item)
 	}
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+	return nil
 }
 
-func GetData() {
-	tlsCredentials, err := loadTLSCredentials()
+func SaveText(ctx context.Context, gc *gophclient.GophClient) error {
+	title, err := getInput("Title", 0, "", 0)
 	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+		return err
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
+	text, err := getInput("Text", 0, "", 0)
 	if err != nil {
-		log.Fatal("cannot dial server: ", err)
+		return err
 	}
 
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.GetData(ctx, &api.GetDataReq{
-		Token:  "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		DataId: 3,
-	})
+	id, err := gc.SaveText(ctx, title, text)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(resp)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+	fmt.Println("Saved. Rec number:", id)
+	return nil
 }
 
-func GetLogin() {
-	tlsCredentials, err := loadTLSCredentials()
+func GetText(ctx context.Context, gc *gophclient.GophClient) error {
+	sId, err := getInput("DataId", 0, "", 0)
 	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+		return err
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
+	id, err := strconv.Atoi(sId)
 	if err != nil {
-		log.Fatal("cannot dial server: ", err)
+		return err
 	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.GetLogin(ctx, &api.GetDataReq{
-		Token:  "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		DataId: 5,
-	})
+	resp, err := gc.GetText(ctx, id)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	fmt.Println(resp)
-
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+	return nil
 }
 
-func GetText() {
-	tlsCredentials, err := loadTLSCredentials()
+func SaveLogin(ctx context.Context, gc *gophclient.GophClient) error {
+	title, err := getInput("Title", 0, "", 0)
 	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+		return err
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
+	login, err := getInput("Login", 0, "", 0)
 	if err != nil {
-		log.Fatal("cannot dial server: ", err)
+		return err
+	}
+	password, err := getInput("Password", 0, "", 0)
+	if err != nil {
+		return err
 	}
 
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	// exitCode := intTests(ctx, c)
-	// fmt.Println("ExitCode:", exitCode)
-
-	resp, err := c.GetText(ctx, &api.GetDataReq{
-		Token:  "68c0c3fe6241aae8d03fbcae65dd7bbcaac15a8ec34dbeb72e9765bed876f3a9",
-		DataId: 9,
-	})
+	id, err := gc.SaveLogin(ctx, title, login, password)
 	if err != nil {
-		panic(err)
+		return err
+	}
+	fmt.Println("Saved. Rec number:", id)
+	return nil
+}
+
+func GetLogin(ctx context.Context, gc *gophclient.GophClient) error {
+	sId, err := getInput("DataId", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	id, err := strconv.Atoi(sId)
+	if err != nil {
+		return err
+	}
+	resp, err := gc.GetLogin(ctx, id)
+	if err != nil {
+		return err
 	}
 	fmt.Println(resp)
+	return nil
+}
 
-	cancel()
-	cc1.Close()
-	// os.Exit(exitCode)
+func SaveData(ctx context.Context, gc *gophclient.GophClient) error {
+	title, err := getInput("Title", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	filename, err := getInput("Filename", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	id, err := gc.SaveData(ctx, title, data)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Saved. Rec number:", id)
+	return nil
+}
+
+func GetData(ctx context.Context, gc *gophclient.GophClient) error {
+	sId, err := getInput("DataId", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	id, err := strconv.Atoi(sId)
+	if err != nil {
+		return err
+	}
+	filename, err := getInput("Filename", 0, "", 0)
+	if err != nil {
+		return err
+	}
+
+	data, err := gc.GetData(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(filename, data, fs.FileMode(os.O_CREATE))
+	if err != nil {
+		return err
+	}
+	fmt.Println(filename + " created")
+	return nil
+}
+
+func SaveCard(ctx context.Context, gc *gophclient.GophClient) error {
+	title, err := getInput("Title", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	cardNo, err := getInput("CardNo", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	valid, err := getInput("Valid", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	cvv, err := getInput("CVV", 0, "", 0)
+	if err != nil {
+		return err
+	}
+	cardInfo := domain.CardInfo{
+		CardNo: cardNo,
+		Valid:  valid,
+		CVV:    cvv,
+	}
+
+	id, err := gc.SaveBankCard(ctx, title, cardInfo)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Saved. Rec number:", id)
+	return nil
+}
+
+func Exit(ctx context.Context, gc *gophclient.GophClient) error {
+	panic(1)
 }
 
 func main() {
-
 	gc, err := gophclient.New("0.0.0.0:4343")
 	if err != nil {
 		panic(err)
 	}
 
-	m := make(map[string]func(gc *gophclient.GophClient))
+	m := make(map[string]callFunc)
 	m["register"] = Register
 	m["login"] = Login
 	m["save"] = SaveData
@@ -543,27 +325,9 @@ func main() {
 	m["get_data"] = GetData
 	m["get_login"] = GetLogin
 	m["get_text"] = GetText
+	m["exit"] = Exit
 
-	menu(m, gc)
-	// Register()
-	return
-
-	tlsCredentials, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatal("cannot load TLS credentials: ", err)
+	for {
+		menu(m, gc)
 	}
-	cc1, err := grpc.Dial("0.0.0.0:4343", grpc.WithTransportCredentials(tlsCredentials))
-	if err != nil {
-		log.Fatal("cannot dial server: ", err)
-	}
-
-	c := api.NewGophKeeperClient(cc1)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-
-	exitCode := intTests(ctx, c)
-	fmt.Println("ExitCode:", exitCode)
-
-	cancel()
-	cc1.Close()
-	os.Exit(exitCode)
 }
