@@ -1,4 +1,0 @@
-{
-    "server_address": ":80",
-    "main_dsn": "postgresql://localhost/gofemartdb?user=postgres&password=GofeMartPg&sslmode=disable"
-}
