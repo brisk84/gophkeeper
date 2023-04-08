@@ -51,7 +51,7 @@ func (s *storage) GetByToken(ctx context.Context, token string) (domain.User, er
 	var user domain.User
 	sql1 := `select id, login from users where token = $1`
 	row := s.db.QueryRowContext(ctx, sql1, token)
-	err := row.Scan(&user.ID, &user.Login)
+	err := row.Scan(&user.Id, &user.Login)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, domain.ErrUrerNotFound

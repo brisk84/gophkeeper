@@ -5,7 +5,7 @@ type User struct {
 	Password string `json:"password"`
 	Hash     string `json:"hash"`
 	Token    string `json:"token"`
-	ID       int64  `json:"id"`
+	Id       int    `json:"id"`
 }
 
 func (u *User) IsValid() bool {

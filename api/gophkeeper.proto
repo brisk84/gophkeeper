@@ -5,7 +5,16 @@ option go_package = "github.com/brisk84/gophkeeper/api";
 
 // The GophKeeper service
 service GophKeeper {
-  rpc Register (RegisterLoginReq) returns (RegisterLoginResp) {}
+  rpc Register (RegisterLoginReq) returns (RegisterLoginResp);
+  rpc Login (RegisterLoginReq) returns (RegisterLoginResp);
+  rpc SaveData (SaveDataReq) returns (SaveDataResp);
+  rpc SaveLogin (SaveLoginReq) returns (SaveDataResp);
+  rpc SaveText (SaveTextReq) returns (SaveDataResp);
+  rpc SaveBankCard (SaveBankCardReq) returns (SaveDataResp);
+  rpc ListData (ListDataReq) returns (ListDataResp);
+  rpc GetData (GetDataReq) returns (GetDataResp);
+  rpc GetLogin (GetDataReq) returns (GetLoginResp);
+  rpc GetText (GetDataReq) returns (GetTextResp);
 }
 
 // The request message for register and login
@@ -17,4 +26,80 @@ message RegisterLoginReq {
 // The response message containing the token
 message RegisterLoginResp {
   string token = 1;
+  bool success = 2;
+}
+
+// The request message for save data
+message SaveDataReq {
+  string token = 1;
+  string title = 2;
+  bytes data = 3;
+}
+
+// The request message for save login
+message SaveLoginReq {
+  string token = 1;
+  string title = 2;
+  string login = 3;
+  string pass = 4;
+}
+
+// The request message for save text
+message SaveTextReq {
+  string token = 1;
+  string title = 2;
+  string text = 3;
+}
+
+// The request message for save bank card
+message SaveBankCardReq {
+  string token = 1;
+  string title = 2;
+  string cardNo = 3;
+  string valid = 4;
+  string cvv = 5;
+}
+
+// The response message containing data id
+message SaveDataResp {
+  int32 id = 1;
+}
+
+// The request message for list data
+message ListDataReq {
+  string token = 1;
+}
+
+// The response message for list data
+message ListDataResp {
+  repeated ListData items = 1;
+}
+
+// The item for ListDataResp
+message ListData {
+  int32 id = 1;
+  string title = 2;
+  string type = 3;
+}
+
+// The request message for GetData
+message GetDataReq {
+  string token = 1;
+  int32 dataId = 2;
+}
+
+// The response message for GetData
+message GetDataResp {
+  bytes data = 1;
+}
+
+// The response message for GetLogin
+message GetLoginResp {
+  string login = 1;
+  string pass = 2;
+}
+
+// The response message for GetText
+message GetTextResp {
+  string text = 1;
 }
