@@ -16,6 +16,7 @@ type Handler struct {
 	useCase useCase
 }
 
+//go:generate mockery --name=useCase --structname=useCaseMock --filename=usecase_mock.go --inpackage
 type useCase interface {
 	Register(ctx context.Context, user domain.User) (string, error)
 	Login(ctx context.Context, user domain.User) (bool, string, error)

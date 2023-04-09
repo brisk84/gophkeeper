@@ -21,7 +21,7 @@ func New(lg logger.Logger, cfg config.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	uc, err := usecase.New(lg, cfg, stor)
+	uc, err := usecase.New(lg, stor)
 	if err != nil {
 		return nil, err
 	}

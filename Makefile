@@ -21,4 +21,7 @@ cert:
 run:
 	go run ./cmd/server/main.go -a :4343
 
+test:
+	go test -v -covermode=count ./...
+
 .PHONY: cert
