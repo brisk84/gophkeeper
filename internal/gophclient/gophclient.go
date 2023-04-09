@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/brisk84/gophkeeper/api"
 	"github.com/brisk84/gophkeeper/domain"
@@ -20,7 +20,7 @@ type GophClient struct {
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
-	pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
+	pemServerCA, err := os.ReadFile("cert/ca-cert.pem")
 	if err != nil {
 		return nil, err
 	}

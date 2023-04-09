@@ -2,38 +2,21 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+	"flag"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"strconv"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/brisk84/gophkeeper/api"
 	"github.com/brisk84/gophkeeper/domain"
 	"github.com/brisk84/gophkeeper/internal/gophclient"
+	"github.com/brisk84/gophkeeper/pkg/ver"
 	"github.com/manifoldco/promptui"
-	"github.com/nexidian/gocliselect"
-	"google.golang.org/grpc/credentials"
 )
-
-func loadTLSCredentials() (credentials.TransportCredentials, error) {
-	pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
-	if err != nil {
-		return nil, err
-	}
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
-	}
-	config := &tls.Config{
-		RootCAs: certPool,
-	}
-	return credentials.NewTLS(config), nil
-}
 
 func intTests(ctx context.Context, c api.GophKeeperClient) int {
 	resp, err := c.Register(ctx, &api.RegisterLoginReq{
@@ -50,23 +33,16 @@ func intTests(ctx context.Context, c api.GophKeeperClient) int {
 type callFunc = func(ctx context.Context, gc *gophclient.GophClient) error
 
 func menu(m map[string]callFunc, gc *gophclient.GophClient) {
-	menu := gocliselect.NewMenu("Welcome to GophKeeper! Choose a command")
-
-	menu.AddItem("Register", "register")
-	menu.AddItem("Login", "login")
-	menu.AddItem("Save data", "save")
-	menu.AddItem("Save login", "save_login")
-	menu.AddItem("Save text", "save_text")
-	menu.AddItem("Save card", "save_card")
-	menu.AddItem("List data", "list_data")
-	menu.AddItem("Get data", "get_data")
-	menu.AddItem("Get login", "get_login")
-	menu.AddItem("Get text", "get_text")
-	menu.AddItem("Exit", "exit")
-
-	choice := menu.Display()
+	choice := ""
+	prompt := &survey.Select{
+		Message: "Welcome to GophKeeper! Choose a command:",
+		Options: []string{"Register", "Login", "Save data", "Save login", "Save text", "Save card",
+			"List data", "Get data", "Get login", "Get text", "Exit"},
+		PageSize: 20,
+	}
+	survey.AskOne(prompt, &choice)
 	if f, ok := m[choice]; ok {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		err := f(ctx, gc)
 		if err != nil {
 			fmt.Println(err)
@@ -309,23 +285,29 @@ func Exit(ctx context.Context, gc *gophclient.GophClient) error {
 }
 
 func main() {
+	flag.Parse()
+	if flag.Arg(0) == "version" {
+		ver.PrintVersion()
+		return
+	}
+
 	gc, err := gophclient.New("0.0.0.0:4343")
 	if err != nil {
 		panic(err)
 	}
 
 	m := make(map[string]callFunc)
-	m["register"] = Register
-	m["login"] = Login
-	m["save"] = SaveData
-	m["save_login"] = SaveLogin
-	m["save_text"] = SaveText
-	m["save_card"] = SaveCard
-	m["list_data"] = ListData
-	m["get_data"] = GetData
-	m["get_login"] = GetLogin
-	m["get_text"] = GetText
-	m["exit"] = Exit
+	m["Register"] = Register
+	m["Login"] = Login
+	m["Save data"] = SaveData
+	m["Save login"] = SaveLogin
+	m["Save text"] = SaveText
+	m["Save card"] = SaveCard
+	m["List data"] = ListData
+	m["Get data"] = GetData
+	m["Get login"] = GetLogin
+	m["Get text"] = GetText
+	m["Exit"] = Exit
 
 	for {
 		menu(m, gc)
