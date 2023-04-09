@@ -84,3 +84,29 @@ func TestLogin(t *testing.T) {
 		assert.Equal(t, "", ret.Token)
 	})
 }
+
+func TestSaveData(t *testing.T) {
+	uc := new(useCaseMock)
+	ctx := context.Background()
+	mockUserId := 1
+	mockTitle := "Some title"
+	mockData := []byte("Some data")
+	mockId := 5
+	mockToken := "b80f2699a2a444546aa7ef44b3aca41b42a097e43fbf16c60e731913129529c4"
+
+	uc.On("Auth", ctx, mockToken).Return(domain.User{Id: mockUserId}, nil)
+	uc.On("SaveData", ctx, mockUserId, mockTitle, mockData).Return(mockId, nil).Once()
+
+	lg, err := logger.New(true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h := New(lg, uc)
+
+	t.Run("success", func(t *testing.T) {
+		saveDataReq := api.SaveDataReq{Token: mockToken, Title: mockTitle, Data: mockData}
+		ret, err := h.SaveData(ctx, &saveDataReq)
+		assert.NoError(t, err)
+		assert.Equal(t, int32(mockId), ret.Id)
+	})
+}

@@ -1,3 +1,4 @@
+// Storage package uses postgres database
 package storage
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// SaveUser store user to databases
 func (s *storage) SaveUser(ctx context.Context, user domain.User) (string, error) {
 	sql1 := `insert into users (login, password, token) values ($1, $2, $3)`
 	_, err := s.db.ExecContext(ctx, sql1, user.Login, user.Hash, user.Token)
@@ -24,6 +26,7 @@ func (s *storage) SaveUser(ctx context.Context, user domain.User) (string, error
 	return user.Token, nil
 }
 
+// GetByLogin returns a user by login
 func (s *storage) GetByLogin(ctx context.Context, login string) (string, error) {
 	var hash string
 	sql1 := `select password from users where login = $1`
@@ -38,6 +41,7 @@ func (s *storage) GetByLogin(ctx context.Context, login string) (string, error) 
 	return hash, nil
 }
 
+// UpdateByLogin updates a user by login
 func (s *storage) UpdateByLogin(ctx context.Context, login, token string) error {
 	sql1 := `update users set token = $1 where login = $2`
 	_, err := s.db.ExecContext(ctx, sql1, token, login)
@@ -47,6 +51,7 @@ func (s *storage) UpdateByLogin(ctx context.Context, login, token string) error 
 	return nil
 }
 
+// GetByToken returns a user by token
 func (s *storage) GetByToken(ctx context.Context, token string) (domain.User, error) {
 	var user domain.User
 	sql1 := `select id, login from users where token = $1`

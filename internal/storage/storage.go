@@ -1,3 +1,4 @@
+// Storage package uses postgres database
 package storage
 
 import (
@@ -19,6 +20,7 @@ type storage struct {
 	db  *sql.DB
 }
 
+// New cretates a storage
 func New(lg logger.Logger, cfg config.Config) (*storage, error) {
 	stor := storage{
 		lg:  lg,
@@ -30,7 +32,7 @@ func New(lg logger.Logger, cfg config.Config) (*storage, error) {
 	return &stor, nil
 }
 
-// Connect Устанавливает соединение
+// Connect connects to database and rollup migrations
 func (s *storage) Connect() error {
 	var err error
 	if s.db, err = sql.Open("postgres", s.dsn); err != nil {
@@ -46,7 +48,7 @@ func (s *storage) Connect() error {
 	return nil
 }
 
-// Close Закрывает соединение
+// Close closes connection
 func (s *storage) Close() error {
 	return s.db.Close()
 }

@@ -1,3 +1,4 @@
+// Package usecase is a business logic
 package usecase
 
 import (
@@ -24,6 +25,7 @@ type service struct {
 	storage storage
 }
 
+// New creates a service
 func New(lg logger.Logger, stor storage) (*service, error) {
 	return &service{
 		lg:      lg,

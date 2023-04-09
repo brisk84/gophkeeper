@@ -1,3 +1,4 @@
+// Package usecase is a business logic
 package usecase
 
 import (
@@ -9,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Register creates new user and returns token
 func (s *service) Register(ctx context.Context, user domain.User) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.MinCost)
 	if err != nil {
@@ -32,6 +34,7 @@ func (s *service) genToken() (string, error) {
 	return token, nil
 }
 
+// Login checks user's login, password and return token, or error
 func (s *service) Login(ctx context.Context, user domain.User) (bool, string, error) {
 	var err error
 	user.Hash, err = s.storage.GetByLogin(ctx, user.Login)
@@ -57,6 +60,7 @@ func (s *service) Login(ctx context.Context, user domain.User) (bool, string, er
 	return true, user.Token, nil
 }
 
+// Auth returns a user by token
 func (s *service) Auth(ctx context.Context, token string) (domain.User, error) {
 	return s.storage.GetByToken(ctx, token)
 }

@@ -1,3 +1,4 @@
+// Package handler contains handlers
 package handler
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/brisk84/gophkeeper/domain"
 )
 
+// Register creates new user and returns token
 func (h *Handler) Register(ctx context.Context, req *api.RegisterLoginReq) (*api.RegisterLoginResp, error) {
 	if req == nil {
 		return nil, errors.New("req is nil")
@@ -32,6 +34,7 @@ func (h *Handler) Register(ctx context.Context, req *api.RegisterLoginReq) (*api
 	}, nil
 }
 
+// Login checks user's login, password and return token, or error
 func (h *Handler) Login(ctx context.Context, req *api.RegisterLoginReq) (*api.RegisterLoginResp, error) {
 	if req == nil {
 		return nil, errors.New("req is nil")

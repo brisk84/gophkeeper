@@ -1,3 +1,4 @@
+// Storage package uses postgres database
 package storage
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/brisk84/gophkeeper/domain"
 )
 
+// SaveData stores a data to database
 func (s *storage) SaveData(ctx context.Context, userId int, title string, data []byte, dataType string) (int, error) {
 	var ret int
 	sql1 := `insert into data (user_id, title, data, type) values ($1, $2, $3, $4) returning id`
@@ -18,6 +20,7 @@ func (s *storage) SaveData(ctx context.Context, userId int, title string, data [
 	return ret, nil
 }
 
+// SaveLogin stores a login and password to database
 func (s *storage) SaveLogin(ctx context.Context, userId int, title string, login, pass string) (int, error) {
 	var ret int
 	m := make(map[string]string)
@@ -36,6 +39,7 @@ func (s *storage) SaveLogin(ctx context.Context, userId int, title string, login
 	return ret, nil
 }
 
+// ListData returns list of records by user id
 func (s *storage) ListData(ctx context.Context, userId int) ([]domain.Data, error) {
 	var ret []domain.Data
 	sql1 := `select id, title, type from data where user_id = $1`
@@ -57,6 +61,7 @@ func (s *storage) ListData(ctx context.Context, userId int) ([]domain.Data, erro
 	return ret, nil
 }
 
+// GetData returns a data by data id
 func (s *storage) GetData(ctx context.Context, userId int, dataId int) ([]byte, error) {
 	var ret []byte
 	sql1 := `select data from data where id = $1`
